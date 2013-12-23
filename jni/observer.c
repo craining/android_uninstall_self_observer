@@ -39,7 +39,8 @@
 static char c_TAG[] = "onEvent";
 static jboolean b_IS_COPY = JNI_TRUE;
 
-jstring Java_com_zgy_catchuninstallself_UninstallObserver_startWork(JNIEnv* env, jobject thiz, jstring path, jstring url) {
+jstring Java_com_zgy_catchuninstallself_UninstallObserver_startWork(JNIEnv* env,
+		jobject thiz, jstring path, jstring url, jint version) {
 	jstring tag = (*env)->NewStringUTF(env, c_TAG);
 
 	//初始化log
@@ -109,12 +110,18 @@ jstring Java_com_zgy_catchuninstallself_UninstallObserver_startWork(JNIEnv* env,
 				(*env)->GetStringUTFChars(env,
 						(*env)->NewStringUTF(env, "uninstalled"), &b_IS_COPY));
 
-		//执行命令am start -a android.intent.action.VIEW -d http://shouji.360.cn/web/uninstall/uninstall.html
-		// execlp("am", "am", "start", "-a", "android.intent.action.VIEW", "-d", "http://shouji.360.cn/web/uninstall/uninstall.html", (char *)NULL);
-		//4.2以上的系统由于用户权限管理更严格，需要加上 --user 0
-		execlp("am", "am", "start", "--user", "0", "-a",
-				"android.intent.action.VIEW", "-d", (*env)->GetStringUTFChars(env, url, NULL),
-				(char *) NULL);
+		if (version >= 17) {
+			//4.2以上的系统由于用户权限管理更严格，需要加上 --user 0
+			execlp("am", "am", "start", "--user", "0", "-a",
+					"android.intent.action.VIEW", "-d",
+					(*env)->GetStringUTFChars(env, url, NULL), (char *) NULL);
+		} else {
+			execlp("am", "am", "start", "-a", "android.intent.action.VIEW",
+					"-d", (*env)->GetStringUTFChars(env, url, NULL),
+					(char *) NULL);
+		}
+
+		//扩展：可以执行其他shell命令，am(即activity manager)，可以打开某程序、服务，broadcast intent，等等
 
 	} else {
 		//父进程直接退出，使子进程被init进程领养，以避免子进程僵死
@@ -122,3 +129,4 @@ jstring Java_com_zgy_catchuninstallself_UninstallObserver_startWork(JNIEnv* env,
 
 	return (*env)->NewStringUTF(env, "Hello from JNI !");
 }
+
